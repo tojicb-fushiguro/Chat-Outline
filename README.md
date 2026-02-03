@@ -66,7 +66,7 @@ Host permissions:
 ## License
 - MIT (open-source)  
 
-See `LICENSE`.
+See [LICENSE](LICENSE).
 
 ---
 
