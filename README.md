@@ -63,6 +63,35 @@ Host permissions:
 
 ---
 
+## 🐛 Troubleshooting
+
+### The sidebar doesn't appear
+- Refresh the page (F5 or Ctrl+R)
+- Make sure you're on ChatGPT or Gemini
+- Check that the extension is enabled in `chrome://extensions`
+
+### The outline is empty
+- Make sure there are user messages in the chat
+- Try clicking the refresh button (↻) in the sidebar
+- The outline only shows user messages, not AI responses
+
+### The sidebar position resets
+- The sidebar remembers your drag position
+- Click the ✥ button to reset to default position
+- Position is saved per browser profile
+
+### Dark/Light theme not matching
+- The extension auto-detects the page theme
+- Try refreshing the page
+- Check your browser/OS theme settings
+
+### Saved chats not loading
+- Saved chats use Chrome storage
+- Make sure you're logged into the same Chrome profile
+- Check Chrome storage permissions
+
+---
+
 ## License
 - MIT (open-source)  
 
