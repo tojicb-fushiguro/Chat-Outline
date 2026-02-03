@@ -5,7 +5,7 @@ A lightweight Chrome Extension that adds a draggable outline sidebar for chat pa
 - Gemini (gemini.google.com)
 
 **Watermark:** CO-SIDEBAR-6C1E-2026  
-**© 2026 YOUR_NAME**
+**© 2026 tojicb-fushiguro**
 
 ---
 
