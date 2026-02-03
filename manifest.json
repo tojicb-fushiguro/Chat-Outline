@@ -2,7 +2,9 @@
   "manifest_version": 3,
   "name": "Chat Outline Sidebar (Local)",
   "version": "0.1.0",
+  "version_name": "0.1.0 (© 2026 tojicb-fushiguro • CO-SIDEBAR-6C1E-2026)",
   "description": "Adds an in-chat message outline sidebar for ChatGPT and Gemini.",
+  "homepage_url": "https://github.com/tojicb-fushiguro/Chat-Outline",
   "permissions": ["storage"],
   "host_permissions": [
     "https://chatgpt.com/*",
@@ -10,7 +12,10 @@
   ],
   "content_scripts": [
     {
-      "matches": ["https://chatgpt.com/*", "https://gemini.google.com/*"],
+      "matches": [
+        "https://chatgpt.com/*",
+        "https://gemini.google.com/*"
+      ],
       "js": ["content.js"],
       "css": ["style.css"],
       "run_at": "document_idle"
@@ -19,9 +24,4 @@
   "icons": {
     "128": "icons/icon128.jpg"
   }
-
-}
-{
-  "homepage_url": "https://github.com/tojicb-fushiguro/Chat-Outline",
-  "version_name": "0.1.0 (© 2026 tojicb-fushiguro • CO-SIDEBAR-6C1E-2026)"
 }
