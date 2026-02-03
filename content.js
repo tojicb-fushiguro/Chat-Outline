@@ -1,3 +1,9 @@
+/*!
+ * Chat Outline Sidebar (Local)
+ * (c) 2026 tojicb-fushiguro
+ * SPDX-License-Identifier: MIT
+ * Watermark: CO-SIDEBAR-6C1E-2026
+ */
 (() => {
   const STORAGE_KEY = "co_collapsed_v1";
   const POS_KEY = "co_position_v1"; 
@@ -810,4 +816,5 @@
   rebuild();
   animationLoop();
   setInterval(updateVisibility, 200);
+
 })();
