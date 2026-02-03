@@ -73,4 +73,5 @@ See `LICENSE`.
 ## Attribution
 
 If you use or fork this project, keep the watermark and attribution:
-**CO-SIDEBAR-6C1E-2026 • © 2026 YOUR_NAME**
+
+**CO-SIDEBAR-6C1E-2026 • © 2026 tojicb-fushiguro**
