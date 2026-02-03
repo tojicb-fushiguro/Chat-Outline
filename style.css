@@ -1,3 +1,9 @@
+/*!
+ * Chat Outline Sidebar (Local)
+ * (c) 2026 tojicb-fushiguro
+ * SPDX-License-Identifier: MIT
+ * Watermark: CO-SIDEBAR-6C1E-2026
+ */
 :root {
   color-scheme: light dark;
 }
@@ -273,4 +279,5 @@
 #co-root.behind {
   z-index: 1;
   pointer-events: none;
+
 }
