@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Chat Outline Sidebar (Local)",
+  "version": "0.1.0",
+  "description": "Adds an in-chat message outline sidebar for ChatGPT and Gemini.",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://chatgpt.com/*",
+    "https://gemini.google.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://chatgpt.com/*", "https://gemini.google.com/*"],
+      "js": ["content.js"],
+      "css": ["style.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "128": "icons/icon128.jpg"
+  }
+}
