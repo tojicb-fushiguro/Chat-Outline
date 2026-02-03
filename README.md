@@ -67,7 +67,6 @@ Host permissions:
 
 Choose one:
 - MIT (open-source)  
-- Proprietary / All rights reserved (restricted)
 
 See `LICENSE`.
 
