@@ -120,14 +120,41 @@
   }
   function extractText(el) {
     if (!el) return "";
-    let t = (el.innerText || el.textContent || "").trim();
     
-    // For Gemini, strip "You said" or similar prefixes
+    // For Gemini, try to find the actual text content element, excluding file attachments
     if (HOST.includes("gemini.google.com")) {
+      // Clone the element to avoid modifying DOM
+      const clone = el.cloneNode(true);
+      
+      // Remove file attachment containers (usually have specific classes or contain PDF/Unknown text)
+      const fileElements = clone.querySelectorAll('[class*="file"], [class*="attachment"]');
+      fileElements.forEach(fileEl => fileEl.remove());
+      
+      // Also remove any elements that contain "PDF", "Unknown", file extensions
+      const allDivs = Array.from(clone.querySelectorAll('div'));
+      allDivs.forEach(div => {
+        const text = div.textContent || '';
+        // If this div ONLY contains file-related text and nothing else meaningful
+        if (/^(.*\.(ahk|txt|pdf|doc|docx|csv|json|xml|py|js|ts|java|cpp|c|h|css|html|md|log|bat|sh|zip|rar|7z)\s*(PDF|Unknown|Document)?|Adobe Cloud Services|PDF|Unknown)$/i.test(text.trim()) && text.length < 100) {
+          div.remove();
+        }
+      });
+      
+      let t = (clone.innerText || clone.textContent || "").trim();
+      
+      // Strip "You said" prefix
       t = t.replace(/^You said\s*/i, "");
       t = t.replace(/^Gemini said\s*/i, "");
+      
+      // Remove any remaining file patterns
+      t = t.replace(/[\w\-_.]+\.(ahk|txt|pdf|doc|docx|csv|json|xml|py|js|ts|java|cpp|c|h|css|html|md|log|bat|sh|zip|rar|7z)\s+(PDF|Unknown|Document)/gi, "");
+      t = t.replace(/Adobe Cloud Services\s+PDF/gi, "");
+      
+      return t.replace(/\s+/g, " ").trim();
     }
     
+    // For ChatGPT, use simple extraction
+    let t = (el.innerText || el.textContent || "").trim();
     return t.replace(/\s+/g, " ");
   }
   const shorten = (text, max = 70) =>
@@ -629,7 +656,7 @@
   function isGeminiNoise(text) {
     if (!text) return true;
     // Filter out common Gemini UI noise
-    return /^(sources|view other drafts|show drafts|related content|view more|you said|gemini said|\+\d+|👍|👎)$/i.test(text.trim());
+    return /^(sources|view other drafts|show drafts|related content|view more|you said|gemini said|\+\d+|👍|👎|unknown|pdf|document)$/i.test(text.trim());
   }
 
   function isPaginationPattern(text) {
