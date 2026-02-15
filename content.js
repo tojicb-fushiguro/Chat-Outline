@@ -120,7 +120,14 @@
   }
   function extractText(el) {
     if (!el) return "";
-    const t = (el.innerText || el.textContent || "").trim();
+    let t = (el.innerText || el.textContent || "").trim();
+    
+    // For Gemini, strip "You said" or similar prefixes
+    if (HOST.includes("gemini.google.com")) {
+      t = t.replace(/^You said\s*/i, "");
+      t = t.replace(/^Gemini said\s*/i, "");
+    }
+    
     return t.replace(/\s+/g, " ");
   }
   const shorten = (text, max = 70) =>
@@ -399,10 +406,16 @@
         row.classList.add("active");
         
         if (it.targetEl && it.targetEl.isConnected) {
-            it.targetEl.scrollIntoView({ behavior: "smooth", block: "center" });
+            // For Gemini, find the actual user message element within the turn
+            let scrollTarget = it.targetEl;
+            if (HOST.includes("gemini.google.com")) {
+              const userNode = findUserNodeInTurn(it.targetEl, getConfig());
+              if (userNode) scrollTarget = userNode;
+            }
+            scrollTarget.scrollIntoView({ behavior: "smooth", block: "start" });
         } else {
             const freshEl = document.getElementById(it.id);
-            if (freshEl) freshEl.scrollIntoView({ behavior: "smooth", block: "center" });
+            if (freshEl) freshEl.scrollIntoView({ behavior: "smooth", block: "start" });
         }
       });
       list.appendChild(row);
@@ -615,7 +628,8 @@
 
   function isGeminiNoise(text) {
     if (!text) return true;
-    return /^(sources|view other drafts|show drafts|related content|view more)$/i.test(text.trim());
+    // Filter out common Gemini UI noise
+    return /^(sources|view other drafts|show drafts|related content|view more|you said|gemini said|\+\d+|👍|👎)$/i.test(text.trim());
   }
 
   function isPaginationPattern(text) {
@@ -623,7 +637,7 @@
   }
 
   function isPurelyNumericOrSymbols(text) {
-    return /^[\d\s.,…]+$/.test(text.trim());
+    return /^[\d\s.,…+\-👍👎]+$/.test(text.trim());
   }
 
   function buildItems(cfg) {
