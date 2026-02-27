@@ -47,13 +47,42 @@
           'div[role="heading"][aria-level="1"]', 
           'button[aria-expanded="true"] span' 
       ]
+    },
+    // --- Perplexity AI ---
+    perplexity: {
+      turn: [
+        '.group\\/query',
+        'div[data-testid^="conversation-turn"]',
+        'div[id^="markdown-content"]'
+      ],
+      userInTurn: [
+        '.group\\/query',
+        'div[data-testid^="conversation-turn"]',
+        'div[id^="markdown-content"]'
+      ],
+      title: [
+        'title',
+        'h1',
+        'div[class*="PageTitle"]'
+      ]
     }
   };
 
   function getConfig() {
     if (HOST.includes("chatgpt.com")) return SELECTORS.chatgpt;
     if (HOST.includes("gemini.google.com")) return SELECTORS.gemini;
+    if (HOST.includes("perplexity.ai")) return SELECTORS.perplexity;
     return null;
+  }
+
+  function isActivePage() {
+    if (HOST.includes("chatgpt.com")) return true;
+    if (HOST.includes("gemini.google.com")) return true;
+    if (HOST.includes("perplexity.ai")) {
+      const path = location.pathname;
+      return path.startsWith("/search/") || path.startsWith("/thread/") || path.length > 2;
+    }
+    return false;
   }
 
   function parseRgb(str) {
@@ -104,64 +133,135 @@
   }
 
   const uniq = (arr) => [...new Set(arr)];
+
   function qsaAny(selectors, root = document) {
     for (const sel of selectors) {
-      const nodes = Array.from(root.querySelectorAll(sel));
-      if (nodes.length) return nodes;
+      try {
+        const nodes = Array.from(root.querySelectorAll(sel));
+        if (nodes.length) return nodes;
+      } catch (e) {
+        // Invalid selector for this browser — skip silently
+      }
     }
     return [];
   }
+
   function findUserNodeInTurn(turn, cfg) {
+    // For Perplexity the turn element IS the user node — return it directly.
+    if (HOST.includes("perplexity.ai")) return turn;
+
     for (const sel of cfg.userInTurn) {
-      const n = turn.querySelector(sel);
-      if (n) return n;
+      try {
+        const n = turn.querySelector(sel);
+        if (n) return n;
+      } catch (e) { /* skip invalid selectors */ }
     }
     return null;
   }
+
+  // ---------------------------------------------------------------------------
+  // Gemini Canvas guard
+  // Returns true if the given element is inside the Canvas / code-editor panel.
+  // We check for the code editor container and the side-panel that Gemini opens.
+  // ---------------------------------------------------------------------------
+  function isInsideGeminiCanvas(el) {
+    if (!HOST.includes("gemini.google.com")) return false;
+    // Walk up and look for known canvas / editor wrapper signals
+    let node = el;
+    while (node && node !== document.body) {
+      const tag = node.tagName ? node.tagName.toLowerCase() : "";
+      const role = node.getAttribute ? node.getAttribute("role") : null;
+      const ariaLabel = node.getAttribute ? (node.getAttribute("aria-label") || "").toLowerCase() : "";
+      const classList = node.classList || [];
+
+      // Gemini Canvas wraps code in a <code-editor>, a mat-drawer, or a side panel
+      if (tag === "code-editor") return true;
+      if (tag === "canvas-panel") return true;
+      if (tag === "mat-drawer") return true;
+      if (tag === "mat-sidenav") return true;
+      // Generic: any element whose aria-label mentions canvas, editor, preview, or code
+      if (/\b(canvas|code editor|code panel|preview panel|file preview)\b/i.test(ariaLabel)) return true;
+      // Gemini adds a class like "is-canvas-open" or wraps in a div[data-canvas]
+      if (node.getAttribute && node.getAttribute("data-canvas") != null) return true;
+      // Line-number gutters in code editors (CodeMirror / Monaco / Gemini's own)
+      if (classList.contains("cm-gutters")) return true;
+      if (classList.contains("cm-content")) return true;
+      if (classList.contains("view-lines")) return true;  // Monaco
+      if (classList.contains("monaco-editor")) return true;
+      // Gemini's own canvas side panel ID / class patterns
+      if (node.id && /canvas|codeeditor|file.?panel/i.test(node.id)) return true;
+      for (const cls of Array.from(classList)) {
+        if (/canvas|codeeditor|codeview|filepanel|sidepanel/i.test(cls)) return true;
+      }
+
+      node = node.parentElement;
+    }
+    return false;
+  }
+
+  // Returns true when the text looks like editor line numbers:
+  // e.g. "1 2 3 4 5 6 7 8 9 10 11 12 13 ..." or "123456789101112..."
+  function isLineNumberNoise(text) {
+    if (!text) return true;
+    const t = text.trim();
+    // Sequence of numbers with optional whitespace — no real words
+    if (/^[\d\s]+$/.test(t) && t.length > 6) return true;
+    // Starts with many sequential digits run together e.g. "123456789101112"
+    if (/^1234567/.test(t.replace(/\s/g, ""))) return true;
+    return false;
+  }
+
   function extractText(el) {
     if (!el) return "";
     
-    // For Gemini, try to find the actual text content element, excluding file attachments
+    // --- Gemini ---
     if (HOST.includes("gemini.google.com")) {
-      // Clone the element to avoid modifying DOM
       const clone = el.cloneNode(true);
-      
-      // Remove file attachment containers (usually have specific classes or contain PDF/Unknown text)
+
+      // Remove file attachment containers
       const fileElements = clone.querySelectorAll('[class*="file"], [class*="attachment"]');
       fileElements.forEach(fileEl => fileEl.remove());
-      
-      // Also remove any elements that contain "PDF", "Unknown", file extensions
+
+      // Remove code blocks / pre elements — these are AI responses, not user text,
+      // but more importantly they contain line numbers and code that pollutes the outline.
+      clone.querySelectorAll('pre, code, [class*="code"], [class*="Code"]').forEach(n => n.remove());
+
       const allDivs = Array.from(clone.querySelectorAll('div'));
       allDivs.forEach(div => {
         const text = div.textContent || '';
-        // If this div ONLY contains file-related text and nothing else meaningful
         if (/^(.*\.(ahk|txt|pdf|doc|docx|csv|json|xml|py|js|ts|java|cpp|c|h|css|html|md|log|bat|sh|zip|rar|7z)\s*(PDF|Unknown|Document)?|Adobe Cloud Services|PDF|Unknown)$/i.test(text.trim()) && text.length < 100) {
           div.remove();
         }
       });
       
       let t = (clone.innerText || clone.textContent || "").trim();
-      
-      // Strip "You said" prefix
       t = t.replace(/^You said\s*/i, "");
       t = t.replace(/^Gemini said\s*/i, "");
-      
-      // Remove any remaining file patterns
       t = t.replace(/[\w\-_.]+\.(ahk|txt|pdf|doc|docx|csv|json|xml|py|js|ts|java|cpp|c|h|css|html|md|log|bat|sh|zip|rar|7z)\s+(PDF|Unknown|Document)/gi, "");
       t = t.replace(/Adobe Cloud Services\s+PDF/gi, "");
-      
       return t.replace(/\s+/g, " ").trim();
     }
-    
-    // For ChatGPT, use simple extraction
+
+    // --- Perplexity ---
+    if (HOST.includes("perplexity.ai")) {
+      const clone = el.cloneNode(true);
+      clone.querySelectorAll('[class*="source"], [class*="citation"], [class*="Source"]').forEach(n => n.remove());
+      let t = (clone.innerText || clone.textContent || "").trim();
+      t = t.replace(/^(You|User):\s*/i, "");
+      t = t.replace(/\[\d+\]/g, "").trim();
+      return t.replace(/\s+/g, " ").trim();
+    }
+
+    // --- ChatGPT (and generic fallback) ---
     let t = (el.innerText || el.textContent || "").trim();
     return t.replace(/\s+/g, " ");
   }
+
   const shorten = (text, max = 70) =>
     text.length <= max ? text : text.slice(0, max - 1) + "…";
 
   // --- State Variables ---
-  let viewMode = 'outline'; // 'outline' | 'groups'
+  let viewMode = 'outline';
   let outlineItems = [];
   let savedGroups = []; 
   let activeId = null;
@@ -311,7 +411,6 @@
   // --- GROUPS LOGIC ---
   function saveGroups() {
     chrome.storage?.local.set({ [GROUPS_KEY]: savedGroups });
-    // Don't re-render entire list here to prevent input loss during rename
   }
 
   function createGroup(name) {
@@ -323,7 +422,7 @@
     };
     savedGroups.unshift(newGroup); 
     saveGroups();
-    renderList(); // Render after creation
+    renderList();
   }
 
   function deleteGroup(groupId) {
@@ -335,26 +434,23 @@
 
   function getSmartTitle() {
       let docTitle = document.title || "";
-      docTitle = docTitle.replace(/ - (ChatGPT|Gemini|Google).*/, "").trim();
+      docTitle = docTitle.replace(/ - (ChatGPT|Gemini|Google|Perplexity).*/, "").trim();
       
-      if (docTitle && docTitle !== "ChatGPT" && docTitle !== "Gemini") {
+      if (docTitle && docTitle !== "ChatGPT" && docTitle !== "Gemini" && docTitle !== "Perplexity") {
           return docTitle;
       }
 
-      const cfg = getConfig();
-      if (cfg && cfg.title) {
-          const selectors = [
-              'h1',
-              'div[class*="title"]',
-              'div[data-testid="conversation-title"]',
-              'nav a[class*="active"]',
-          ];
-          
-          for(const sel of selectors) {
-              const el = document.querySelector(sel);
-              if(el && el.innerText.length > 2) {
-                  return el.innerText.trim();
-              }
+      const selectors = [
+          'h1',
+          'div[class*="title"]',
+          'div[data-testid="conversation-title"]',
+          'nav a[class*="active"]',
+      ];
+      
+      for (const sel of selectors) {
+          const el = document.querySelector(sel);
+          if (el && el.innerText && el.innerText.length > 2) {
+              return el.innerText.trim();
           }
       }
 
@@ -389,13 +485,12 @@
     renderList();
   }
 
-  // NEW: Rename Chat Function
   function renameChat(groupId, itemId, newName) {
     const group = savedGroups.find(g => g.id === groupId);
     if (!group) return;
     const item = group.items.find(i => i.id === itemId);
     if (!item) return;
-    item.title = newName.trim() || item.title; // Fallback to old name if empty
+    item.title = newName.trim() || item.title;
     saveGroups();
     renderList();
   }
@@ -433,7 +528,6 @@
         row.classList.add("active");
         
         if (it.targetEl && it.targetEl.isConnected) {
-            // For Gemini, find the actual user message element within the turn
             let scrollTarget = it.targetEl;
             if (HOST.includes("gemini.google.com")) {
               const userNode = findUserNodeInTurn(it.targetEl, getConfig());
@@ -510,7 +604,6 @@
                 const itemEl = document.createElement("div");
                 itemEl.className = "co-group-item";
                 
-                // Create link element
                 const link = document.createElement("a");
                 link.href = item.url;
                 link.className = "co-link";
@@ -518,31 +611,16 @@
                 link.textContent = item.title;
                 link.title = "Double-click to rename"; 
 
-                // FIX: Add click handler to prevent navigation ONLY on double click
-                // We do this by preventing default temporarily
-                link.addEventListener("click", (e) => {
-                    // Logic: If a double click happens, we want to cancel the navigation
-                    // But 'dblclick' fires AFTER two 'click' events.
-                    // This is tricky. A common pattern is to delay the click action slightly.
-                    // However, preventing default on 'dblclick' is usually enough if the browser handles it,
-                    // but since the first click navigates immediately, we need a slight delay or a distinct UI.
-                    
-                    // IMPROVED APPROACH: Use a "View" button for navigation and let the text be purely for renaming?
-                    // OR: Delay navigation by 250ms to wait for potential second click.
-                });
-
-                // Let's implement the delay strategy for smoother UX
                 let clickTimer = null;
                 link.addEventListener("click", (e) => {
-                    e.preventDefault(); // Stop immediate navigation
+                    e.preventDefault();
                     
                     if (clickTimer) {
                         clearTimeout(clickTimer);
                         clickTimer = null;
-                        // It was a double click, handled by dblclick listener
                     } else {
                         clickTimer = setTimeout(() => {
-                            window.location.href = item.url; // Navigate after delay if no second click
+                            window.location.href = item.url;
                             clickTimer = null;
                         }, 250); 
                     }
@@ -553,13 +631,11 @@
                 delBtn.title = "Remove";
                 delBtn.textContent = "✕";
 
-                // Double click to rename
                 link.addEventListener("dblclick", (e) => {
                     e.preventDefault();
                     e.stopPropagation(); 
-                    if (clickTimer) clearTimeout(clickTimer); // Ensure navigation doesn't fire
+                    if (clickTimer) clearTimeout(clickTimer);
 
-                    // Create input replacement
                     const input = document.createElement("input");
                     input.type = "text";
                     input.value = item.title;
@@ -573,12 +649,10 @@
                     input.style.background = "var(--co-bg)";
                     input.style.color = "var(--co-text)";
                     
-                    // Replace link with input
                     itemEl.replaceChild(input, link);
                     input.focus();
                     input.select();
 
-                    // Save on Blur or Enter
                     const finishRename = () => {
                        renameChat(group.id, item.id, input.value);
                     };
@@ -650,12 +724,17 @@
   }
 
   function getTurns(cfg) {
-    return uniq(qsaAny(cfg.turn)).filter(el => isStrictlyVisible(el));
+    return uniq(qsaAny(cfg.turn)).filter(el => {
+      if (!isStrictlyVisible(el)) return false;
+      // --- Gemini Canvas guard ---
+      // Drop any element that lives inside the Canvas code-editor panel.
+      if (isInsideGeminiCanvas(el)) return false;
+      return true;
+    });
   }
 
   function isGeminiNoise(text) {
     if (!text) return true;
-    // Filter out common Gemini UI noise
     return /^(sources|view other drafts|show drafts|related content|view more|you said|gemini said|\+\d+|👍|👎|unknown|pdf|document)$/i.test(text.trim());
   }
 
@@ -670,25 +749,28 @@
   function buildItems(cfg) {
     const turns = getTurns(cfg);
     const result = [];
-    const userMap = new Map();
-
-    for (const turn of turns) {
-      const userNode = findUserNodeInTurn(turn, cfg);
-      if (!userNode) continue;
-      userMap.set(userNode, turn);
-    }
+    const seen = new Set();
 
     let idx = 0;
     let lastLabel = null;
 
-    for (const [userNode, turn] of userMap.entries()) {
+    for (const turn of turns) {
+      if (seen.has(turn)) continue;
+      seen.add(turn);
+
+      const userNode = findUserNodeInTurn(turn, cfg);
+      if (!userNode) continue;
+
       let text = extractText(userNode);
       const imgs = Array.from(userNode.querySelectorAll('img')).filter(img => (img.naturalWidth || img.width) > 40);
       const thumb = imgs.length ? imgs[0].src : null;
 
       if (!text && thumb) text = "Image";
       if ((!text || text.length < 2) && !thumb) continue;
+
+      // Drop Gemini noise, pagination, and line-number sequences from Canvas
       if (isGeminiNoise(text) || isPaginationPattern(text)) continue;
+      if (isLineNumberNoise(text)) continue;
 
       const label = shorten(text, 90);
       if (result.length > 0) {
@@ -753,6 +835,8 @@
   function rebuild() {
     const cfg = getConfig();
     if (!cfg) return;
+    if (!isActivePage()) return;
+
     const root = ensureUI();
     applyTheme(root);
     
@@ -762,6 +846,7 @@
     renderList();
     if (viewMode === 'outline') setupIntersectionObserver();
   }
+
   function scheduleRebuild() {
     clearTimeout(rebuildTimer);
     rebuildTimer = setTimeout(rebuild, 250);
@@ -772,6 +857,7 @@
     const mo = new MutationObserver(() => scheduleRebuild());
     mo.observe(target, { childList: true, subtree: true });
   }
+
   function hookHistory() {
     const _pushState = history.pushState;
     const _replaceState = history.replaceState;
@@ -834,6 +920,10 @@
       const canvasOpen = isGeminiCanvasOpen();
       root.style.top = canvasOpen ? "150px" : "76px";
       root.style.right = "16px"; 
+      root.style.left = "auto";
+    } else if (HOST.includes("perplexity.ai")) {
+      root.style.top = "76px";
+      root.style.right = "16px";
       root.style.left = "auto";
     }
   }
