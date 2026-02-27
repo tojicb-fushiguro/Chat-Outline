@@ -3,6 +3,7 @@
 A lightweight Chrome Extension that adds a draggable outline sidebar for chat pages, making it easier to navigate messages on:
 - ChatGPT (chatgpt.com)
 - Gemini (gemini.google.com)
+- Perplexity (perplexity.ai)
 
 **Watermark:** CO-SIDEBAR-6C1E-2026  
 **© 2026 tojicb-fushiguro**
@@ -11,10 +12,10 @@ A lightweight Chrome Extension that adds a draggable outline sidebar for chat pa
 
 ## Features
 
-- 📌 Floating “Outline” panel that lists user turns for quick navigation
+- 📌 Floating "Outline" panel that lists user turns for quick navigation
 - 🎛️ Collapsible UI and draggable positioning
 - 🌓 Light/Dark theme awareness
-- 📂 “Saved Chats” groups (save current chat URL into named groups)
+- 📂 "Saved Chats" groups (save current chat URL into named groups)
 - 💾 Persists UI state and groups using Chrome storage
 
 ---
@@ -34,7 +35,7 @@ A lightweight Chrome Extension that adds a draggable outline sidebar for chat pa
 
 ## Usage
 
-1. Open ChatGPT or Gemini in your browser.
+1. Open ChatGPT, Gemini, or Perplexity in your browser.
 2. The sidebar appears on the page.
 3. Click outline items to scroll to that message.
 4. Use the 📂 button to switch between **Outline** and **Saved Chats**.
@@ -51,6 +52,7 @@ A lightweight Chrome Extension that adds a draggable outline sidebar for chat pa
 Host permissions:
 - `https://chatgpt.com/*`
 - `https://gemini.google.com/*`
+- `https://www.perplexity.ai/*`
 
 ---
 
@@ -67,7 +69,7 @@ Host permissions:
 
 ### The sidebar doesn't appear
 - Refresh the page (F5 or Ctrl+R)
-- Make sure you're on ChatGPT or Gemini
+- Make sure you're on ChatGPT, Gemini, or Perplexity
 - Check that the extension is enabled in `chrome://extensions`
 
 ### The outline is empty
