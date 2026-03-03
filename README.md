@@ -48,6 +48,8 @@ Light Mode
 
 Dark Mode
 ---
+<img width="1015" height="933" alt="image" src="https://github.com/user-attachments/assets/fb8ca3ee-9750-4e90-b984-ba6724b58d0d" />
+Movable
 
 ## Permissions
 
