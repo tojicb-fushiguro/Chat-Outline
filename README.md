@@ -42,11 +42,11 @@ A lightweight Chrome Extension that adds a draggable outline sidebar for chat pa
 
 <img width="1394" height="939" alt="image" src="https://github.com/user-attachments/assets/dbf1485e-bdab-4413-a990-2c72c482582b" />
 
-Dark Mode
-
+Light Mode
+---
 <img width="1261" height="926" alt="image" src="https://github.com/user-attachments/assets/7051548c-8bfa-4e73-abef-7e215c24013c" />
 
-Light Mode
+Dark Mode
 ---
 
 ## Permissions
