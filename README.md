@@ -39,9 +39,7 @@ A lightweight Chrome Extension that adds a draggable outline sidebar for chat pa
 2. The sidebar appears on the page.
 3. Click outline items to scroll to that message.
 4. Use the 📂 button to switch between **Outline** and **Saved Chats**.
-<img width="413" height="868" alt="image" src="https://github.com/user-attachments/assets/94587353-bd3e-4870-b9c9-a5f00e89555e" />
 
-<img width="234" height="136" alt="image" src="https://github.com/user-attachments/assets/06cb320e-c485-4762-8987-a5329bb2c99f" />
 
 ---
 
